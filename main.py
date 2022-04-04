@@ -888,7 +888,7 @@ async def punir(ctx, member:discord.Member):
     return
 
 @bot.command(name="clan_criar")
-async def clan_criar(ctx, tag,r=0, g=0, b=0):
+async def clan_criar(ctx, tag, r=0, g=0, b=0):
 
     if r == 0 or r == '0':
         if g == 0 or g == '0':
@@ -914,6 +914,19 @@ async def clan_criar(ctx, tag,r=0, g=0, b=0):
     wsr = wb.active
     n = 0
 
+    for row in wsr.iter_cols(min_col=9, max_col=9, min_row=1):
+        for cell in row:
+            if cell.value == f'{tag}' and cell.value != None:
+                warning = await ctx.send("⚠️ Já existe um clan com esse nome!\n⚠️ Por favor, tente outro nome.")
+                time.sleep(8)
+                await warning.delete()
+                return
+            elif cell.value == (f"{tag} " + "(Líder)") and cell.value != None:
+                warning = await ctx.send("⚠️ Já existe um clan com esse nome!\n⚠️ Por favor, tente outro nome.")
+                time.sleep(8)
+                await warning.delete()
+                return
+
     for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
         for cell in row:
             if cell.value == member_id:
@@ -921,7 +934,7 @@ async def clan_criar(ctx, tag,r=0, g=0, b=0):
                 n += 1
             else:
                 n += 0 
-
+                
     if n == 0:
         embedVar = discord.Embed(title="⚠️Error 404", description="Você não foi encontrado em nosso banco de dados!", colour=discord.Colour.random())
         embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
@@ -945,8 +958,6 @@ async def clan_criar(ctx, tag,r=0, g=0, b=0):
 
     await ctx.author.add_roles(role)
 
-    await role.edit(position=6)
-
     for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
         for cell in row:
             if cell.value == member_id:
@@ -959,137 +970,7 @@ async def clan_criar(ctx, tag,r=0, g=0, b=0):
     embedVar.add_field(name="Observações:", value="・Somente o líder do clan poderá convidar e expulsar membros do clan.\n・Para modificar a TAG ou a cor do clan, entre em contato com um ADM.\n・Usar `!clan_excluir` irá deletar o clan permanentemente.")
     embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
     await ctx.reply(embed=embedVar)
-    return
-
-@bot.command(name="clan_excluir")
-async def clan_excluir(ctx):
-
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
-        time.sleep(10)
-        await warning.delete()
-        await ctx.message.delete()
-        return
-
-    id = ctx.author.id
-    member_id = "`" + str(id) + "`"
-
-    file = "banco de dados.xlsx"
-    wb = openpyxl.load_workbook(filename=file)
-    ws = wb.worksheets[0]
-    wsr = wb.active
-    n = 0
-
-    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-        for cell in row:
-            if cell.value == member_id:
-                clan = ws.cell(row=cell.row, column=9).value
-                n += 1
-            else:
-                n += 0
-
-    if clan == "Não participante":
-        embedVar = discord.Embed(title="⚠️Error 401", description="Você não participa de um clan", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed = embedVar)
-        return
-    
-    if not "Líder" in clan:
-        embedVar = discord.Embed(title="⚠️Error 403", description="Você não é líder do seu clan", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed=embedVar)
-        return
-    
-    clan = clan[:-8]
-    backend = await bot.fetch_channel(960354527511453756)
-    await backend.send(f"{ctx.author.id} {clan} EXCLUIR {ctx.message.id} {ctx.channel.id}")
-    return
-
-@bot.command(name="clan_convidar")
-async def clan_convidar(ctx, member:discord.Member):
-
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
-        time.sleep(10)
-        await warning.delete()
-        await ctx.message.delete()
-        return
-
-    id = ctx.author.id
-    member_id = "`" + str(id) + "`"
-
-    file = "banco de dados.xlsx"
-    wb = openpyxl.load_workbook(filename=file)
-    ws = wb.worksheets[0]
-    wsr = wb.active
-    n = 0
-
-    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-        for cell in row:
-            if cell.value == member_id:
-                clan = ws.cell(row=cell.row, column=9).value
-                n += 1
-            else:
-                n += 0
-
-    if clan == "Não participante":
-        embedVar = discord.Embed(title="⚠️Error 401", description="Você não participa de um clan", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed = embedVar)
-        return
-    
-    if not "Líder" in clan:
-        embedVar = discord.Embed(title="⚠️Error 403", description="Você não é líder do seu clan", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed=embedVar)
-        return
-
-    if n == 0:
-        embedVar = discord.Embed(title="⚠️Error 404", description="Não foi encontrado o seu registro em nosso servidor!", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="Por favor, entre em contato com o DEV.")
-        await ctx.send(embed = embedVar)
-        return
-    
-    clan_ = clan[:-8]
-
-    member_id = "`" + str(member.id) + "`"
-
-    n = 0
-
-    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-        for cell in row:
-            if cell.value == member_id:
-                clan = ws.cell(row=cell.row, column=9).value
-                n += 1
-            else:
-                n += 0
-    
-    if clan != "Não participante":
-        embedVar = discord.Embed(title="⚠️Error 403", description=f"{member.name} já participa do clan {clan}")
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.send(embed = embedVar)
-        return
-
-    if n == 0:
-        embedVar = discord.Embed(title="⚠️Error 404", description="Não foi encontrado o seu registro em nosso servidor!", colour=discord.Colour.random())
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="Por favor, entre em contato com o DEV.")
-        await ctx.send(embed = embedVar)
-        return
-
-    embedVar = discord.Embed(title="✅ Convidado com sucesso!", description=f"{member.name} foi convidado com sucesso para o seu clan.", colour = discord.Colour.random())
-    embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-    embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-    await ctx.send(embed = embedVar)
-
-    backend = await bot.fetch_channel(960354527511453756)
-    await backend.send(f"{member.id} {clan_} CONVIDAR")
+    await role.edit(position=6)
     return
 
 @bot.command(name="clan_sair")
@@ -1320,180 +1201,6 @@ async def ajuda(ctx):
             await mensagem.edit(embed=embedVar)
     return
 
-@bot.command(name="ticket_criar")
-async def ticket_criar(ctx):
-    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761) #ID DE ADMINISTRADOR SUPREMO
-
-    backend = await bot.fetch_channel(960055351833677875)
-
-    if check_1 in ctx.author.roles:
-        pass
-    else:
-        warning = await ctx.reply("Você não tem permissão para usar isso!")
-        time.sleep(8)
-        await ctx.message.delete()
-        await warning.delete()
-        return
-    
-    await ctx.message.delete()
-
-    embedVar = discord.Embed(title=" 📩 Ticket de suporte", description="Por favor, use os tickets de acordo com a sua necessidade.", colour = discord.Colour.random())
-    embedVar.add_field(name="Observações:", value="・**Se você deseja selecionar a mesma opção que a anterior, selecione 'Opção genérica' e depois a opção desejada**\n・Os tickets destinados a seguro de veículos e helicopteros serão apenas disponíveis àqueles que obtém esse benefício.\n・Seja colaborativo e apenas crie ticket se necessário.\n・Ignore a mensagem _Esta interação falhou_, é apenas um bug do Discord.")
-    embedVar.set_footer(text="Caso o BOT não esteja funcionando corretamente, entre em contato com o DEV.")
-    await ctx.send(embed=embedVar, components=[Select(placeholder="Ticket", custom_id="ticket", options=[
-        SelectOption(label="Opção genérica", value="ajuda",emoji="🌐"),
-        SelectOption(label="Ajuda in-game", value="ajudaingame", emoji="📩"),
-        SelectOption(label="Solicitar seguro de veículos", value="seguroveiculos",emoji="🚗"),
-        SelectOption(label="Solicitar seguro de helicopteros", value="seguroheli",emoji="🚁"),
-        SelectOption(label="Financeiro (doações e afins)", value="financeiro", emoji="💸"),
-        SelectOption(label="Dúvida", value="duvida", emoji="❓"),
-        SelectOption(label="Denunciar jogador", value="denunciaplyr", emoji="👮"),
-        SelectOption(label="Denunciar bug in-Game", value="denunciabuggame", emoji="⚙️"),
-        SelectOption(label="Denunciar bug in-Discord", value="denunciabugdiscord", emoji="⚙️"),
-        SelectOption(label="Ajuda com o bot e banco de dados", value="bot", emoji="⚙️")
-    ])])
-
-    while True:
-
-        interaction = await bot.wait_for('select_option', check=lambda inter: inter.custom_id == 'ticket')
-        authorid = interaction.author.id
-
-
-        async def ficha(id):
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-
-            member_id = str(id)
-            member_id = "`"+member_id+"`"
-
-            n = 0
-
-            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-                for cell in row:
-                    if cell.value == member_id:
-                        discord_id = ws.cell(row=cell.row, column=1).value
-                        discord_nick = ws.cell(row=cell.row, column=2).value
-                        steam_id = ws.cell(row=cell.row, column=3).value
-                        steam_nick = ws.cell(row=cell.row, column=4).value
-                        steam_verify = ws.cell(row=cell.row, column=5).value
-                        rules_broken = ws.cell(row=cell.row, column=6).value
-                        adv = ws.cell(row=cell.row, column=7).value
-                        bans = ws.cell(row=cell.row, column=8).value
-                        clan = ws.cell(row=cell.row, column=9).value
-                        cars_seguro = ws.cell(row=cell.row, column=10).value
-                        cars_seguro_days = ws.cell(row=cell.row, column=11).value
-                        cars_seguro_remain = ws.cell(row=cell.row, column=12).value
-                        heli_seguro = ws.cell(row=cell.row, column=13).value
-                        heli_seguro_days = ws.cell(row=cell.row, column=14).value
-                        heli_seguro_remain = ws.cell(row=cell.row, column=15).value
-                        construcao = ws.cell(row=cell.row, column=16).value
-                        construcao_days = ws.cell(row=cell.row, column=17).value
-                        fila_prioritaria = ws.cell(row=cell.row, column=18).value
-                        fila_prioritaria_days = ws.cell(row=cell.row, column=19).value
-                        n += 1
-                    else:
-                        n += 0
-
-            if n == 0:
-                embedVar = discord.Embed(title="⚠️Error 404", description="Não foi encontrado um registro do usuário em questão!")
-                embedVar.set_footer(text="Caso você ache que isso é um engano, contate o DEV!")
-                await ctx.send(embed = embedVar)
-                return  
-
-            embedVar = discord.Embed(title="📝 Ficha do usuário", description="📝 Segue a ficha detalhada do usuário abaixo\n", colour = discord.Colour.random())
-            embedVar.add_field(name="<:steam:958580268581662770> Steam *", value=f"SteamID: {steam_id}\nSteam nick: `{steam_nick}` **\nVerificado: `{steam_verify}`")
-            embedVar.add_field(name=":shield: Clã", value=f"{clan}")
-            embedVar.add_field(name=":card_box: Histórico", value=f"Infrações: `{rules_broken}`\nAdvertências: `{adv}`\nBanimentos: `{bans}`")
-            embedVar.add_field(name="<:discord:958830929810440284> Discord", value=f"Nick: `{discord_nick}`\nID: {discord_id}")
-            embedVar.add_field(name=":blue_car: Seguro de carros", value=f"Possui: `{cars_seguro}`\nQuantos restantes: `{cars_seguro_remain}`\nQuantos dias restantes: `{cars_seguro_days}`")
-            embedVar.add_field(name=":helicopter: Seguro helicopteros", value=f"Possui: `{heli_seguro}`\nQuantos restantes: `{heli_seguro_remain}`\nQuantos dias restantes: `{heli_seguro_days}`")
-            embedVar.add_field(name=":house: Construção", value=f"Possui: `{construcao}`\nDias restantes: `{construcao_days}`")
-            embedVar.add_field(name="<:vip:958581319418384395> Fila prioritaria", value=f"Possui: `{fila_prioritaria}`\nDias restantes: `{fila_prioritaria_days}`")
-            embedVar.add_field(name="ㅤ", value="ㅤ")
-            embedVar.set_footer(text="*Caso as inforamções estejam como 'None', significa que o discord não foi vinculado ao nosso sistema\n** O nick pode ser modificado na Steam e não atualizado no nosso banco de dados.\n➝ Caso tenha alguma dúvida, entre em contato com o DEV.")
-            url_antes = f"https://www.steamidfinder.com/lookup/{steam_id}/"
-            
-            return embedVar, url_antes
-
-        if interaction.values[0] == 'ajuda':
-            await interaction.send("Selecione o tipo de ajuda que você deseja", ephemeral = True)
-
-        if interaction.values[0] == "ajudaingame":
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-            await backend.send(f"{authorid} {interaction.values[0]}")
-
-        elif interaction.values[0] == "seguroveiculos":
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-
-            member_id = interaction.author.id
-            member_id = str(member_id)
-            member_id = "`"+member_id+"`"
-            n = 0
-
-            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-                for cell in row:
-                    if cell.value == member_id:
-                        cars_seguro = ws.cell(row=cell.row, column=10).value
-            
-            if cars_seguro != "✅":
-                await interaction.send("Você não possui esse benefício. Caso você ache que isso é um engano, crie um ticket no Financeiro.", ephemeral=True)
-            else:
-                await backend.send(f"{authorid} {interaction.values[0]}")
-                await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "seguroheli":
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-
-            member_id = interaction.author.id
-            member_id = str(member_id)
-            member_id = "`"+member_id+"`"
-            n = 0
-
-            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-                for cell in row:
-                    if cell.value == member_id:
-                        heli_seguro = ws.cell(row=cell.row, column=13).value
-            
-            if heli_seguro != "✅":
-                await interaction.send("Você não possui esse benefício. Caso você ache que isso é um engano, crie um ticket no Financeiro.", ephemeral=True)
-            else:
-                await backend.send(f"{authorid} {interaction.values[0]}")
-                await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "financeiro":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "denunciaplyr":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "denunciabuggame":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "denunciabugdiscord":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "bot":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-
-        elif interaction.values[0] == "duvida":
-            await backend.send(f"{authorid} {interaction.values[0]}")
-            await interaction.send("Ticket criado com sucesso! Ele está posicionado nos primeiros canais de texto do servidor.")
-    
-    return
-
 @bot.command(name="registrar")
 async def registrar(ctx, member:discord.Member):
 
@@ -1543,319 +1250,7 @@ async def on_message(message):
     await bot.process_commands(message)
     
     if message.channel.id == 960055351833677875:
-        comando = message.content
-        comando = comando.split(" ")
-        id = comando[0]
-        idd = int(id)
-        motivo = comando[1]
-        guild = await bot.fetch_guild(947237264596041728)
-        member = await guild.fetch_member(idd)
-        
-        async def ficha(id):
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-
-            member_id = str(id)
-            member_id = "`"+member_id+"`"
-
-            n = 0
-
-            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-                for cell in row:
-                    if cell.value == member_id:
-                        discord_id = ws.cell(row=cell.row, column=1).value
-                        discord_nick = ws.cell(row=cell.row, column=2).value
-                        steam_id = ws.cell(row=cell.row, column=3).value
-                        steam_nick = ws.cell(row=cell.row, column=4).value
-                        steam_verify = ws.cell(row=cell.row, column=5).value
-                        rules_broken = ws.cell(row=cell.row, column=6).value
-                        adv = ws.cell(row=cell.row, column=7).value
-                        bans = ws.cell(row=cell.row, column=8).value
-                        clan = ws.cell(row=cell.row, column=9).value
-                        cars_seguro = ws.cell(row=cell.row, column=10).value
-                        cars_seguro_days = ws.cell(row=cell.row, column=11).value
-                        cars_seguro_remain = ws.cell(row=cell.row, column=12).value
-                        heli_seguro = ws.cell(row=cell.row, column=13).value
-                        heli_seguro_days = ws.cell(row=cell.row, column=14).value
-                        heli_seguro_remain = ws.cell(row=cell.row, column=15).value
-                        construcao = ws.cell(row=cell.row, column=16).value
-                        construcao_days = ws.cell(row=cell.row, column=17).value
-                        fila_prioritaria = ws.cell(row=cell.row, column=18).value
-                        fila_prioritaria_days = ws.cell(row=cell.row, column=19).value
-                        n += 1
-                    else:
-                        n += 0
-
-            embedVar = discord.Embed(title="📝 Ficha do usuário", description="📝 Segue a ficha detalhada do usuário abaixo\n", colour = discord.Colour.random())
-            embedVar.add_field(name="<:steam:958580268581662770> Steam *", value=f"SteamID: {steam_id}\nSteam nick: `{steam_nick}` **\nVerificado: `{steam_verify}`")
-            embedVar.add_field(name=":shield: Clã", value=f"{clan}")
-            embedVar.add_field(name=":card_box: Histórico", value=f"Infrações: `{rules_broken}`\nAdvertências: `{adv}`\nBanimentos: `{bans}`")
-            embedVar.add_field(name="<:discord:958830929810440284> Discord", value=f"Nick: `{discord_nick}`\nID: {discord_id}")
-            embedVar.add_field(name=":blue_car: Seguro de carros", value=f"Possui: `{cars_seguro}`\nQuantos restantes: `{cars_seguro_remain}`\nQuantos dias restantes: `{cars_seguro_days}`")
-            embedVar.add_field(name=":helicopter: Seguro helicopteros", value=f"Possui: `{heli_seguro}`\nQuantos restantes: `{heli_seguro_remain}`\nQuantos dias restantes: `{heli_seguro_days}`")
-            embedVar.add_field(name=":house: Construção", value=f"Possui: `{construcao}`\nDias restantes: `{construcao_days}`")
-            embedVar.add_field(name="<:vip:958581319418384395> Fila prioritaria", value=f"Possui: `{fila_prioritaria}`\nDias restantes: `{fila_prioritaria_days}`")
-            embedVar.add_field(name="ㅤ", value="ㅤ")
-            embedVar.set_footer(text="*Caso as inforamções estejam como 'None', significa que o discord não foi vinculado ao nosso sistema\n** O nick pode ser modificado na Steam e não atualizado no nosso banco de dados.\n➝ Caso tenha alguma dúvida, entre em contato com o DEV.")
-            url_antes = f"https://www.steamidfinder.com/lookup/{steam_id}/"
-            
-            return embedVar, url_antes
-
-        embedVar_cancelar = discord.Embed(title=":x: Encerrar ticket", description="Para cancelar o ticket, clique no botão abaixo!", colour=discord.Colour.random())
-        embedVar_cancelar.add_field(name="Observações:", value="・Depois de cancelado, todo o histórico será deletado e todas as informações aqui perdidas.\n・Só clique se você realmente quiser terminar a solicitação.")
-        embedVar_cancelar.set_footer(text="Se você tiver algum problema com o BOT, por favor entre em contato com o DEV.")
-
-        embedVar_apagar = discord.Embed(title=":x: Apagar ticket", description="Para apagar o ticket, clique no botão abaixo!", colour=discord.Colour.random())
-        embedVar_apagar.add_field(name="Observações:", value="・Esse processo é irreversível.\n・Não haverá métodos para recuperar o histórico.")
-        embedVar_apagar.set_footer(text="Se você tiver algum problema com o BOT, por favor entre em contato com o DEV.")
-
         interaction = await bot.fetch_user(id)
-
-        overwrite = {
-            guild.default_role: discord.PermissionOverwrite(read_messages = False)
-        }
-
-        if motivo == "ajudaingame":
-            channel = await guild.create_text_channel("ticket-ajuda-in-game", position=0, overwrites=overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando de **ajuda in-game**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "seguroveiculos":
-            channel = await guild.create_text_channel("ticket-ajuda-seguro-veiculos", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando de **seguro de veículos**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "seguroheli":
-            channel = await guild.create_text_channel("ticket-ajuda-seguro-helicopteros", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando de **seguro de helicopteros**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "financeiro":
-            channel = await guild.create_text_channel("ticket-ajuda-financeiro", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando de **ajuda financeiro**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "denunciaplyr":
-            channel = await guild.create_text_channel("ticket-denuncia-jogador", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket querendo **denunciar um jogador**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "denunciabuggame":
-            channel = await guild.create_text_channel("ticket-denuncia-bug", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket querendo **denunciar um bug in-game**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "denunciabugdiscord":
-            channel = await guild.create_text_channel("ticket-denuncia-bug-discord", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket querendo **denunciar um bug no Discord**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "bot":
-            channel = await guild.create_text_channel("ticket-bot", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando de **ajuda com o bot**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        elif motivo == "duvida":
-            channel = await guild.create_text_channel("ticket-duvida", position=0, overwrites = overwrite)
-            ficha_ = await ficha(interaction.id)
-            await channel.send("O jogador criou esse ticket precisando tirar uma **dúvida**")
-            await channel.send(embed=ficha_[0], components=[Button(label="Mais inforamações", style=ButtonStyle.URL, url=ficha_[1])])
-            time.sleep(1)
-            await channel.set_permissions(member, read_messages=True, send_messages=True, read_message_history=True)
-            await channel.send(f"<@{interaction.id}>")
-            await channel.send(embed=embedVar_cancelar, components=[Button(label="Finalizar", style=ButtonStyle.red, custom_id="finalizar")])
-            await bot.wait_for('button_click',  check=lambda i: i.custom_id == "finalizar")
-            await channel.set_permissions(member, read_messages=False, send_messages=False, read_message_history=True)
-            time.sleep(1)
-            await channel.send(embed=embedVar_apagar, components=[Button(label="Apagar", custom_id="apagar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "apagar")
-            await channel.delete()
-
-        return
-
-    if message.channel.id == 960354527511453756:
-        
-        mensagem = message.content
-        comando = mensagem.split(" ")
-        ordem = comando[2]
-        guild = await bot.fetch_guild(947237264596041728)
-
-        if ordem == "CONVIDAR":
-            id = comando[0]
-            clan_ = comando[1]
-            author = await guild.fetch_member(int(id))
-            member = author
-
-            member_id = "`" + str(id) + "`"
-
-            embedVar = discord.Embed(title=f"⚜️ Convite para entrar no clan {clan_}", description=f"{author.name} te convidou para entrar no clan {clan_}. Para aceitar, clique no botão abaixo", colour=discord.Colour.random())
-            embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War\n・Caso você não queira entrar no clan, apenas ignore.")
-            embedVar.set_author(name=author.name, icon_url=author.avatar_url)
-            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-            ask = await member.send(embed = embedVar, components=[Button(label="Entrar", style=ButtonStyle.green, custom_id="entrar")])
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "entrar")
-
-            while True:
-                if update_state == "ON":
-                    time.sleep(1)
-                elif update_state == "OFF":
-                    break
-
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-            n = 0
-
-            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
-                for cell in row:
-                    if cell.value == member_id:
-                        ws[f'{get_column_letter(cell.column + 8)}{(cell.row)}'] = f"{clan_}"
-                        wb.save(file)
-
-            for role in guild.roles:
-                if role.name == f"{clan_}":
-                    await member.add_roles(role)
-                    await ask.delete()
-
-            embedVar = discord.Embed(title=f"✔️ Parabéns! Você acaba de entrar no clan {clan_}!")
-            embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War")
-            embedVar.set_author(name=author.name, icon_url=author.avatar_url)
-            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-            await member.send(embed=embedVar)
-            return
-
-        elif ordem == "EXCLUIR":
-            
-            id = comando[0]
-            author = await guild.fetch_member(int(id))
-            channel = await bot.fetch_channel(int(comando[4]))
-            message = await channel.fetch_message(int(comando[3]))
-            clan = comando[1]
-
-            embedVar = discord.Embed(title="⚠️Atenção", description="Esse é um processo sem volta. Deseja mesmo excluir o seu clan? Todos os seus membros serão expulsos do seu clan.\nClique em 'Confirmar' para deletar o clan. Caso queira cancelar, apenas ignore.", colour=discord.Colour.random())
-            embedVar.add_field(name="Observações:", value="・Apenas o autor do comando pode confirmar essa ação.\n・Essa ação é IRREVERSÍVEL, mesmo com o suporte da STAFF.\n・Você ainda poderá criar outro clan.")
-            embedVar.set_author(name=author.name, icon_url=author.avatar_url)
-            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-            warning = await message.reply(embed=embedVar, components=[Button(label="Confirmar", style=ButtonStyle.green, custom_id="confirmado")])
-
-            await bot.wait_for('button_click', check=lambda i: i.custom_id == "confirmado" and i.user == author)
-
-            await warning.delete()
-            embedVar = discord.Embed(title="Deletado com sucesso", description=f"O clan {clan} foi deletado com sucesso e todos seus membros foram desanexados.")
-            embedVar.set_author(name=author.name, icon_url=author.avatar_url)
-            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-            await message.reply(embed=embedVar)
-
-            for role in guild.roles:
-                if role.name == f"{clan}":
-                    await role.delete()
-
-            file = "banco de dados.xlsx"
-            wb = openpyxl.load_workbook(filename=file)
-            ws = wb.worksheets[0]
-            wsr = wb.active
-            n = 0
-
-            for row in wsr.iter_cols(min_col=9, max_col=9, min_row=1):
-                    for cell in row:
-                        if cell.value == f'{clan}' and cell.value != None:
-                            ws[f'{get_column_letter(cell.column)}{(cell.row)}'] = "Não participante" 
-                            wb.save(file)
-                        elif cell.value == f'{clan}' + " (Líder)" and cell.value != None:
-                            ws[f'{get_column_letter(cell.column)}{(cell.row)}'] = "Não participante" 
-                            wb.save(file)
-            return
 
     if message.author.id == 912310660669521921:
         return
@@ -1970,7 +1365,6 @@ n = 0
 async def update_days():
 
     global update_state
-    update_state = "ON"
 
     file = "banco de dados.xlsx"
     wb = openpyxl.load_workbook(filename=file)
@@ -1979,9 +1373,11 @@ async def update_days():
 
     global n
 
-    if n == 1: #IF para não permitir que desconte 1 dia dos VIPs só por ligar o bot
+    if n != 1: #IF para não permitir que desconte 1 dia dos VIPs só por ligar o bot
         n += 1
         return 
+    
+    update_state = "ON"
 
     channel = bot.get_channel(960022037794025522)
 
@@ -2062,21 +1458,6 @@ async def code(ctx, error):
         await ctx.message.delete()
     return
 
-@clan_convidar.error
-async def clan_convidar(ctx, error):
-    if isinstance(error, commands.MemberNotFound):
-        embedVar = discord.Embed(title="⚠️ Usuário não encontrado!", colour = discord.Colour.random())
-        embedVar.add_field(name="Atenção:", value="O usuário em questão não foi encontrado. Certifique-se que você está marcando o @ dele aqui no servidor.")
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed = embedVar)
-
-    if isinstance(error, discord.errors.Forbidden):
-        embedVar = discord.Embed(title="⚠️ O usuário em questão não permite receber mensagens no privado", colour = discord.Colour.random())
-        embedVar.add_field(name="Atenção:", value="O usuário que você estava tentando convidar não permite receber mensagens privadas de Bots no Discord. Entretanto, não consegui convida-lo!")
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed = embedVar)
-    return
-
 @doacoesanuncios.error
 async def da(ctx, error):
     if isinstance(error, discord.errors.Forbidden):
@@ -2097,5 +1478,5 @@ async def perfil(ctx, error):
         await ctx.reply(embed = embedVar)
     return
 
-
-bot.run()
+bot.load_extension('cogs.Clan')
+bot.run('OTEyMzEwNjYwNjY5NTIxOTIx.YZuFgw.dYqfKMJiRNDKAHJMPQVDRU3hxRk')
