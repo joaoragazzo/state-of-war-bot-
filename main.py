@@ -1479,4 +1479,4 @@ async def perfil(ctx, error):
     return
 
 bot.load_extension('cogs.Clan')
-bot.run('OTEyMzEwNjYwNjY5NTIxOTIx.YZuFgw.dYqfKMJiRNDKAHJMPQVDRU3hxRk')
+bot.run()
