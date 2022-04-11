@@ -80,20 +80,22 @@ class commands(commands.Cog):
             return
 
         embedVar = discord.Embed(title="✅ Convidado com sucesso!", description=f"{member.name} foi convidado com sucesso para o seu clan.", colour = discord.Colour.random())
+        embedVar.add_field(name="Observações:", value="➝ O convite pode expirar depois de um tempo.\n➝ O usuário em questão deve permitir receber mensagens de bot no privado do Discord.")
         embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
         embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.send(embed = embedVar)
+        response = await ctx.send(embed = embedVar)
 
         await ctx.invoke(self.client.get_command('clan_convidar_function'), member=member, clan=clan_)
+        return
 
-    @commands.command( name="clan_convidar_function")
+    @commands.command(name="clan_convidar_function")
     async def clan_convidar_function(self, ctx:commands.Context, member: discord.Member, *, clan):
 
         member_id = "`" + str(member.id) + "`"
         clan_ = clan
 
         embedVar = discord.Embed(title=f"⚜️ Convite para entrar no clan {clan_}", description=f"{ctx.author.name} te convidou para entrar no clan {clan_}. Para aceitar, clique no botão abaixo", colour=discord.Colour.random())
-        embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War\n・Caso você não queira entrar no clan, apenas ignore.")
+        embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War\n・Caso você não queira entrar no clan, apenas ignore.\n・Caso receba a mensagem dizendo que a interação falhou, significa que o convite já expirou")
         embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
         embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
         ask = await member.send(embed = embedVar, components=[Button(label="Entrar", style=ButtonStyle.green, custom_id="entrar")])
@@ -209,6 +211,7 @@ class commands(commands.Cog):
                         ws[f'{get_column_letter(cell.column)}{(cell.row)}'] = "Não participante" 
                         wb.save(file)
         return
+
 
 def setup(client):
     client.add_cog(commands(client))
