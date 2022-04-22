@@ -1,8 +1,11 @@
+from http.client import FORBIDDEN
+from unittest import expectedFailure
 import discord, openpyxl, time, discord_components, main
 from discord.ext import commands
 from discord_components import DiscordComponents, Select, SelectOption, Button, ButtonStyle, ComponentsBot
-from main import bot, update_state
+from main import bot
 from openpyxl.utils import get_column_letter
+import datetime
 
 class commands(commands.Cog):
     def __init__(self, client):
@@ -94,19 +97,24 @@ class commands(commands.Cog):
         member_id = "`" + str(member.id) + "`"
         clan_ = clan
 
-        embedVar = discord.Embed(title=f"⚜️ Convite para entrar no clan {clan_}", description=f"{ctx.author.name} te convidou para entrar no clan {clan_}. Para aceitar, clique no botão abaixo", colour=discord.Colour.random())
-        embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War\n・Caso você não queira entrar no clan, apenas ignore.\n・Caso receba a mensagem dizendo que a interação falhou, significa que o convite já expirou")
-        embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        ask = await member.send(embed = embedVar, components=[Button(label="Entrar", style=ButtonStyle.green, custom_id="entrar")])
+        try:
+            embedVar = discord.Embed(title=f"⚜️ Convite para entrar no clan {clan_}", description=f"{ctx.author.name} te convidou para entrar no clan {clan_}. Para aceitar, clique no botão abaixo", colour=discord.Colour.random())
+            embedVar.add_field(name="Observações:", value="・Você pode sair a hora que você quiser do clan digitando `!clan_sair` no servidor do State of War\n・Caso você não queira entrar no clan, apenas ignore.\n・Caso receba a mensagem dizendo que a interação falhou, significa que o convite já expirou")
+            embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
+            ask = await member.send(embed = embedVar, components=[Button(label="Entrar", style=ButtonStyle.green, custom_id="entrar")])
 
-        await bot.wait_for('button_click', check=lambda i: i.custom_id == "entrar" and i.author == member)
+            await bot.wait_for('button_click', check=lambda i: i.custom_id == "entrar" and i.author == member)
 
-        while True:
-            if update_state == "ON":
-                 time.sleep(1)
-            elif update_state == "OFF":
-                break
+        except Exception:
+            embedVar = discord.Embed(title=f"<a:no_mark:963300068578963516> | Erro 403: Forbidden", description=f"Não foi possível convidar {member.name}, pois ele não permite receber mensagens de bots em seu privado.", colour=discord.Colour.red())
+            embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
+            await ctx.send(embed=embedVar)
+            return
+
+        while str(datetime.datetime.now().hour) == 0:
+            continue
 
         file = "banco de dados.xlsx"
         wb = openpyxl.load_workbook(filename=file)
@@ -134,8 +142,9 @@ class commands(commands.Cog):
 
     @commands.command(name="clan_excluir")
     async def clan_excluir(self, ctx):
-        if update_state == "ON":
-            warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+
+        if str(datetime.datetime.now().hour) == '8':
+            warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 00:00 até às 01:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
             time.sleep(10)
             await warning.delete()
             await ctx.message.delete()
@@ -211,7 +220,6 @@ class commands(commands.Cog):
                         ws[f'{get_column_letter(cell.column)}{(cell.row)}'] = "Não participante" 
                         wb.save(file)
         return
-
 
 def setup(client):
     client.add_cog(commands(client))

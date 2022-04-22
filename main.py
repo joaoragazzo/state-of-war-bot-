@@ -1,3 +1,4 @@
+from ast import Pass
 import asyncio
 import functools
 import itertools
@@ -21,19 +22,20 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter 
 import time 
 import requests
-
+import datetime
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=['!'], description="Bot", intents=intents)
 DiscordComponents(bot)
 client = discord.Client(intents=intents)
 
-update_state = "OFF"
 id_requests_chernarus = list()
 id_channel_chernarus = list()
 
 id_requests_namalsk = list()
 id_channel_namalsk = list()
+
+ids_suspeitos  = list()
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
@@ -458,6 +460,592 @@ class Music(commands.Cog):
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Eu já estou cantando em outro chat de voz!')    
 
+@bot.command(name="suspeito_adicionar")
+async def suspeito_adicionar(ctx, *,conteudo):
+
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
+    conteudo = conteudo.split("/")
+    nick = conteudo[0]
+    id = conteudo[1]
+
+    if not '76' in id:
+        embedVar = discord.Embed(title="⚠️ SteamID não válido!", description="Por favor, certifique-se que você utilizou a forma `!suspeito_adicionar [NICK]/[STEAMID]/[MOTIVO]`")
+        embedVar.set_footer(text="Caso tenha alguma duvida, entre em contato com  DEV.")
+        await ctx.send(embed=embedVar)
+        return
+
+
+    id = "`" + str(id) + "`"
+    motivo = conteudo[2]
+
+    valid_reaction=['✅','❌']
+
+    file = "suspeitos.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == id:
+                suspeito_already = discord.Embed(title="⚠️ Esse SteamID já encontrado!", description="O SteamID já foi encontrado no nosso banco de dados. Deseja ver mais informações", colour=discord.Colour.red())
+                suspeito_already.set_footer(text="Caso tenha alguma dúvida, contate o DEV.")
+                warning = await ctx.send(embed=suspeito_already)
+
+                await warning.add_reaction('✅')
+                await warning.add_reaction('❌')
+
+                def check(reaction, user):
+                    return user == ctx.author and str(reaction.emoji) in valid_reaction
+                reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                if str(reaction.emoji) == '✅':
+                    await warning.delete()
+                    id = ws.cell(row=cell.row, column = 1).value
+                    nick = ws.cell(row=cell.row, column = 2).value
+                    motivo = ws.cell(row=cell.row, column = 3).value
+
+                    embedVar = discord.Embed(title=f"⚠️ Suspeito encontrado com sucesso!", description=f"**SteamID:** {id}\n**Nick:** {nick}\n**Motivo:** {motivo}", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, contate o DEV.")
+                    await ctx.send(embed = embedVar)
+                    return 
+                
+                elif str(reaction.emoji) == '❌':
+                    await warning.delete()
+                    return        
+                
+    ws[f'{get_column_letter(ws.min_column + 0)}{(ws.max_row + 1)}'] = id
+    ws[f'{get_column_letter(ws.min_column + 1)}{(ws.max_row)}'] = nick
+    ws[f'{get_column_letter(ws.min_column + 2)}{(ws.max_row)}'] = motivo
+
+    embedVar = discord.Embed(title="⚠️ Adicionado com sucesso!", description=f"O jogador `{nick}`, portador do SteamID `{id}` foi adicionado na lista de suspeitos por `{motivo}`.",colour = discord.Colour.red())
+    embedVar.set_footer(text="Caso tenha alguma dúvida, contate o DEV.")
+    await ctx.send(embed=embedVar)
+
+    wb.save(file)
+    return
+
+@bot.command(name="suspeito_editar")
+async def lista(ctx, id):
+
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
+    id = "`" + str(id) + "`"
+
+    valid_reaction=["1️⃣","2️⃣","3️⃣"]
+
+    file = "suspeitos.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == id:
+                embedVar = discord.Embed(title=f"Atualização de suspeita do ID {id}", description="O que você deseja editar?\n1️⃣ ID\n2️⃣Nick\n3️⃣Motivo da suspeita", colour = discord.Colour.red())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                mensagem = await ctx.send(embed=embedVar)
+
+                def check(reaction, user):
+                    return user == ctx.author and str(reaction.emoji) in valid_reaction
+                reaction, user = await bot.wait_for('reaction_add', timeout = 60, check=check)
+
+                def check_msg(msg):
+                        return msg.author == ctx.author
+
+                if str(reaction.emoji) == '1️⃣':
+                    await mensagem.delete()
+                    embedVar = discord.Embed(title=f"Atualização do ID do suspeito", description="Por favor, digite o novo ID que você queira colocar para o suspeito", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    mensagem = await ctx.send(embed=embedVar)
+
+                    new_ID = await bot.wait_for('message', timeout=60, check=check_msg)
+                    new_ID = "`" + str(new_ID.content) + "`"
+                    ws[cell.coordinate] = new_ID
+                    wb.save(file)
+
+                    await mensagem.delete()
+                    await new_ID.delete()
+
+                    embedVar = discord.Embed(title=f"Alterado com sucesso!", description=f"O ID do suspeito foi alterado com sucesso de {id} para {new_ID}!", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    await ctx.send(embed=embedVar)
+
+                elif str(reaction.emoji) == '2️⃣':
+                    await mensagem.delete()
+                    embedVar = discord.Embed(title=f"Atualização do NICK do suspeito", description="Por favor, digite o novo nick que você queira colocar para o suspeito", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    mensagem = await ctx.send(embed=embedVar)
+
+                    nick = await bot.wait_for('message', timeout=60, check=check_msg)
+                    nick = nick.content
+                    ws[cell.coordinate] = nick
+                    wb.save(file)
+
+                    await mensagem.delete()
+                    await nick.delete()
+
+                    embedVar = discord.Embed(title=f"Alterado com sucesso!", description=f"O ID do suspeito foi alterado com sucesso para {nick}!", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    await ctx.send(embed=embedVar)
+
+                elif str(reaction.emoji) == '3️⃣':
+                    await mensagem.delete()
+                    embedVar = discord.Embed(title=f"Atualização do motivo de suspeita", description="Por favor, digite o novo motivo que você queira colocar para o suspeito", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    mensagem = await ctx.send(embed=embedVar)
+
+                    motivo = await bot.wait_for('message', timeout=60, check=check_msg)
+                    motivo = motivo.content
+                    ws[cell.coordinate] = motivo
+                    wb.save(file)
+
+                    await mensagem.delete()
+                    await motivo.delete()
+
+                    embedVar = discord.Embed(title=f"Alterado com sucesso!", description=f"O ID do suspeito foi alterado com sucesso para {motivo}!", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    await ctx.send(embed=embedVar)
+
+@bot.command(name="suspeito_lista")
+async def suspeito_lista(ctx):
+
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+    
+    file = "suspeitos.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    lista = ""
+    
+    n = 0
+    for row in range(2, ws.max_row+1):
+        for column in "A":
+            n = n + 1
+            cell_name="{}{}".format(column, row)
+            lista = lista + f"{n}. {ws[cell_name].value}\n"
+    
+    lista = discord.Embed(title="Lista de todos os SteamIDs suspeitos:", description=f"{lista}", color = discord.Colour.random())
+    lista.set_footer(text="Para mais informações sobre o motivo de report do ID, utilize !suspeito_ficha")
+    await ctx.reply(embed=lista)
+
+@bot.command(name="suspeito_ficha")
+async def suspeito_ficha(ctx, id):
+
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
+    id = "`" + str(id) + "`"
+
+    file = "suspeitos.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    n = 0 
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == id:
+                n += 1
+                nick = ws.cell(row=cell.row, column = 2).value
+                motivo = ws.cell(row=cell.row, column = 3).value
+    
+    if n == 0:
+        embedVar = discord.Embed(title="⚠️ Não encontrado!", description="O SteamID em questão não foi encontrado no nosso banco de dados.", colour = discord.Colour.red())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.send(embed = embedVar)
+        return
+
+    embedVar = discord.Embed(title="⚠️ Suspeito encontrado com sucesso!", description=f"**SteamID:** {id}\n**Nick:** {nick}\n**Motivo de suspeita:** {motivo}", colour=discord.Colour.red())
+    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+    await ctx.send(embed = embedVar)
+    return   
+
+@bot.command(name="suspeito_deletar")
+async def suspeito_deletar(ctx, id):
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
+    id = "`" + str(id) + "`"
+
+    file = "suspeitos.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    valid_reaction = ['✅','❌']
+
+    n = 0 
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == id:
+                n += 1
+                embedVar = discord.Embed(title=f"Você deseja mesmo deletar a suspeita do SteamID `{id}`?", colour= discord.Colour.red())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com DEV.")
+                message = await ctx.send(embed = embedVar)
+                await message.add_reaction('✅')
+                await message.add_reaction('❌')
+
+                def check(reaction, user):
+                    return user == ctx.author and str(reaction.emoji) in valid_reaction
+                reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                if str(reaction.emoji) == '✅':
+                    await message.delete()
+                    ws[cell.coordinate] = "DELETADO"
+                    wb.save(file)
+                    embedVar = discord.Embed(title="✅ Deletado com sucesso!", colour = discord.Colour.red())
+                    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                    await ctx.send(embed=embedVar)
+                    return
+                
+                elif str(reaction.emoji) == '❌':
+                    await message.delete()
+                    return
+    
+    if n == 0:
+        embedVar = discord.Embed(title="⚠️ Esse SteamID não foi encontrado na nossa lista!", description="Certifique-se que você digitou o SteamID corretamente!", colour=discord.Colour.red())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.send(embed = embedVar)
+                
+@bot.command(name="purge")
+async def purge(ctx):
+    check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761)
+
+    if check_1 in ctx.author.roles:
+        pass
+    else:
+        warning = await ctx.reply("Você não tem permissão para usar isso!")
+        time.sleep(8)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
+    warning = await ctx.send('Apagando todas as mensagens desse canal...')
+    time.sleep(3)
+    await ctx.message.delete()
+    await warning.delete()
+    await ctx.channel.purge()
+
+@bot.command(name="kdr")
+async def kdr(ctx):
+    discord_id = ctx.author.id
+    discord_id = "`" + str(discord_id) + "`"
+
+    embedVar = discord.Embed(title="⚜️ Selecione o mapa", description="Por favor, selecione o mapa que você deseja olhar as suas estatísticas!\n☢️ Chernarus\n❄️ Namalsk", colour=discord.Colour.random())
+    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+    message = await ctx.reply(embed=embedVar)
+    await message.add_reaction('☢️')
+    await message.add_reaction('❄️')
+
+    valid_reaction = ['☢️','❄️']
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in valid_reaction
+    reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+    if str(reaction.emoji) == '☢️':
+        await message.delete()
+        file = "kds_chernarus.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        n = 0
+
+        for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+            for cell in row:
+                if cell.value == discord_id:
+                    n += 1
+                    mortes = ws.cell(row=cell.row, column = 3).value
+                    kills = ws.cell(row=cell.row, column = 4).value
+                    maior_distancia = ws.cell(row=cell.row, column = 5).value
+
+        if n == 0:
+            embedVar = discord.Embed(title="⚠️ Error 404", description="O seu usuário não foi encontrado no nosso banco de dados. Certifique-se de que você foi devidamente cadastrado na aba <#960654509904904252>", colour=discord.Colour.red())
+            embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+            await ctx.send(embed=embedVar)
+            return
+
+        if int(mortes) != 0:
+            kdr = int(kills)/int(mortes)
+        else:
+            kdr = int(kills)/1
+
+        embedVar = discord.Embed(title="☠️ Kill Death Ratio | State of War | ☢️ Chernarus", description=f"<:killicon:965991780824797224> Kills: `{kills}`\n<:death:965992257301938249> Mortes: `{mortes}`\n<:kdr:965996010654548039> Kill Death Ratio (KDR): `{kdr}`\n<:sniper:965991798063370251> Maior distância de uma kill: `{maior_distancia} metros`", colour=discord.Colour.random())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.reply(embed=embedVar)
+
+    elif str(reaction.emoji) == '❄️':
+        await message.delete()
+        file = "kds_namalsk.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        n = 0
+
+        for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+            for cell in row:
+                if cell.value == discord_id:
+                    n += 1
+                    mortes = ws.cell(row=cell.row, column = 3).value
+                    kills = ws.cell(row=cell.row, column = 4).value
+                    maior_distancia = ws.cell(row=cell.row, column = 5).value
+
+        if n == 0:
+            embedVar = discord.Embed(title="⚠️ Error 404", description="O seu usuário não foi encontrado no nosso banco de dados. Certifique-se de que você foi devidamente cadastrado na aba <#960654509904904252>", colour=discord.Colour.red())
+            embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+            await ctx.send(embed=embedVar)
+            return
+
+        if int(mortes) != 0:
+            kdr = int(kills)/int(mortes)
+        else:
+            kdr = int(kills)/1
+
+        embedVar = discord.Embed(title="☠️ Kill Death Ratio | State of War | ❄️ Namalsk", description=f"<:killicon:965991780824797224> Kills: `{kills}`\n<:death:965992257301938249> Mortes: `{mortes}`\n<:kdr:965996010654548039> Kill Death Ratio (KDR): `{kdr}`\n<:sniper:965991798063370251> Maior distância de uma kill: `{maior_distancia} metros`", colour=discord.Colour.random())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.reply(embed=embedVar)
+
+@bot.command(name="kdr_pv")
+async def kdr(ctx):
+    discord_id = ctx.author.id
+    discord_id = "`" + str(discord_id) + "`"
+
+    embedVar = discord.Embed(title="⚜️ Selecione o mapa", description="Por favor, selecione o mapa que você deseja olhar as suas estatísticas!\n☢️ Chernarus\n❄️ Namalsk", colour=discord.Colour.random())
+    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+    message = await ctx.reply(embed=embedVar)
+    await message.add_reaction('☢️')
+    await message.add_reaction('❄️')
+
+    valid_reaction = ['☢️','❄️']
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in valid_reaction
+    reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+    if str(reaction.emoji) == '☢️':
+        file = "kds_chernarus.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        n = 0
+
+        for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+            for cell in row:
+                if cell.value == discord_id:
+                    n += 1
+                    mortes = ws.cell(row=cell.row, column = 3).value
+                    kills = ws.cell(row=cell.row, column = 4).value
+                    maior_distancia = ws.cell(row=cell.row, column = 5).value
+
+        if n == 0:
+            embedVar = discord.Embed(title="⚠️ Error 404", description="O seu usuário não foi encontrado no nosso banco de dados. Certifique-se de que você foi devidamente cadastrado na aba <#960654509904904252>", colour=discord.Colour.red())
+            embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+            await ctx.send(embed=embedVar)
+            return
+
+        if int(mortes) != 0:
+            kdr = int(kills)/int(mortes)
+        else:
+            kdr = int(kills)/1
+
+        embedVar = discord.Embed(title="☠️ Kill Death Ratio | State of War", description=f"<:killicon:965991780824797224> Kills: `{kills}`\n<:death:965992257301938249> Mortes: `{mortes}`\n<:kdr:965996010654548039> Kill Death Ratio (KDR): `{kdr}`\n<:sniper:965991798063370251> Maior distância de uma kill: `{maior_distancia} metros`", colour=discord.Colour.random())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.author.send(embed=embedVar)
+    
+    elif str(reaction.emoji) == '❄️':
+        file = "kds_namalsk.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        n = 0
+
+        for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+            for cell in row:
+                if cell.value == discord_id:
+                    n += 1
+                    mortes = ws.cell(row=cell.row, column = 3).value
+                    kills = ws.cell(row=cell.row, column = 4).value
+                    maior_distancia = ws.cell(row=cell.row, column = 5).value
+
+        if n == 0:
+            embedVar = discord.Embed(title="⚠️ Error 404", description="O seu usuário não foi encontrado no nosso banco de dados. Certifique-se de que você foi devidamente cadastrado na aba <#960654509904904252>", colour=discord.Colour.red())
+            embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+            await ctx.send(embed=embedVar)
+            return
+
+        if int(mortes) != 0:
+            kdr = int(kills)/int(mortes)
+        else:
+            kdr = int(kills)/1
+
+        embedVar = discord.Embed(title="☠️ Kill Death Ratio | State of War", description=f"<:killicon:965991780824797224> Kills: `{kills}`\n<:death:965992257301938249> Mortes: `{mortes}`\n<:kdr:965996010654548039> Kill Death Ratio (KDR): `{kdr}`\n<:sniper:965991798063370251> Maior distância de uma kill: `{maior_distancia} metros`", colour=discord.Colour.random())
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.author.send(embed=embedVar)
+
+@bot.command(name="top_kills")
+async def top_kills(ctx):
+
+    valid_reaction=["☢️","❄️"]
+
+    embedVar = discord.Embed(title="⚜️ Selecione o mapa", description="Por favor, selecione o mapa que você deseja olhar as melhores kills!\n☢️ Chernarus\n❄️ Namalsk", colour=discord.Colour.random())
+    embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+    message = await ctx.send(embed = embedVar)
+
+    await message.add_reaction('☢️')
+    await message.add_reaction('❄️')
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in valid_reaction
+    reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+    if str(reaction.emoji) == '☢️':
+        file = "kds_chernarus.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        inicial_list = []
+        medium_list = []
+        final_list = []
+
+        for row in wsr.iter_cols(min_col=5, max_col=5, min_row=1):
+            for cell in row:
+                if cell.value != None:
+                    distancia = cell.value
+                    inicial_list.append(distancia)
+
+        for dis in inicial_list:
+            dis = float(dis)
+            medium_list.append(dis)
+
+        medium_list.sort(reverse=True)
+        for bests in medium_list[:10]:
+            final_list.append(bests)
+
+        top_kills_message = ""
+
+        number = 1
+
+        melhores_jogadores = []
+
+        for n in final_list:
+            for row in wsr.iter_cols(min_col=5, max_col=5, min_row=1):
+                for cell in row:
+                    if cell.value == n and cell.value != None:
+                        discord_id_bests = ws.cell(row=cell.row, column = 1).value
+                        discord_id_bests = discord_id_bests.replace("`","")
+                        discord_id_bests = int(discord_id_bests)
+                        melhores_jogadores.append(discord_id_bests)
+
+        for n in final_list:
+            i = final_list.index(n)
+            member = await bot.fetch_user(melhores_jogadores[i])
+            top_kills_message = top_kills_message + str(str(number) +"º. " + "`" + str(n) + "`" + " metros. Killer: " + str((member.display_name)) + "\n")
+            number += 1
+
+        embedVar = discord.Embed(title="<:sniper:965991798063370251> Melhores 10 tiros State of War", description=top_kills_message)
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.send(embed=embedVar)    
+
+    elif str(reaction.emoji) == '❄️':
+        file = "kds_namalsk.xlsx"
+        wb = openpyxl.load_workbook(filename=file)
+        ws = wb.worksheets[0]
+        wsr = wb.active
+
+        inicial_list = []
+        medium_list = []
+        final_list = []
+
+        for row in wsr.iter_cols(min_col=5, max_col=5, min_row=1):
+            for cell in row:
+                if cell.value != None:
+                    distancia = cell.value
+                    inicial_list.append(distancia)
+
+        for dis in inicial_list:
+            dis = float(dis)
+            medium_list.append(dis)
+
+        medium_list.sort(reverse=True)
+
+        for bests in medium_list[:10]:
+            final_list.append(bests)
+
+        top_kills_message = ""
+        
+        number = 1
+
+        melhores_jogadores = []
+
+        for n in final_list:
+            for row in wsr.iter_cols(min_col=5, max_col=5, min_row=1):
+                for cell in row:
+                    if str(cell.value) == str(n) and cell.value != None:
+                        discord_id_bests = ws.cell(row=cell.row, column = 1).value
+                        discord_id_bests = discord_id_bests.replace("`","")
+                        discord_id_bests = int(discord_id_bests)
+                        melhores_jogadores.append(discord_id_bests)
+
+        for n in final_list:
+            i = final_list.index(n)
+            member = await bot.fetch_user(melhores_jogadores[i])
+            top_kills_message = top_kills_message + str(str(number) +"º. " + "`" + str(n) + "`" + " metros. Killer: " + str(member.display_name) + "\n")
+            number += 1
+
+        embedVar = discord.Embed(title="<:sniper:965991798063370251> Melhores 10 tiros State of War", description=top_kills_message)
+        embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+        await ctx.send(embed=embedVar)         
 
 @bot.command(name="regras_1")
 async def regras_1(ctx):   
@@ -478,10 +1066,10 @@ async def regras_1(ctx):
     embedVar = discord.Embed(title="**Regras do servidor**", description="É estritamente proibido, dentro das dependências do State of War:",colour=discord.Colour.red())
     embedVar.set_footer(text="As regras estão sujeitas a mudanças. Fique atento!")
     await ctx.send(embed=embedVar)
-    await ctx.send("```python\n1・Uso de programas externos que possam oferecer vantagem dentro do jogo (hacks/sem mato);\n2・Uso de glitchs/bugs que ofereçam vantagem por cima de outros jogadores;\n3・Qualquer tipo de preconceito ou discurso de ódio;\n4・Ghost em streamers (caso comprovado, será paassivel de punição);\n5・Qualquer tipo de combatlog (deslogar durante ações de PvP);\n6・Deixar veículos estacionados dentro de Safezones (recomendamos guarda-los dentro de garagens);\n7・Destruir ou arruinar veículos trancados pelo mapa (dentro ou fora de bases);\nObservação・NÃO se responsabilizamos por eventuais bugs nos mods que ocasionem perdas ou prejuízo, pois não temos controle sobre os mesmos```")
+    await ctx.send("```python\n1・Uso de programas externos que possam oferecer vantagem dentro do jogo (hacks/sem mato);\n2・Uso de glitchs/bugs que ofereçam vantagem por cima de outros jogadores;\n3・Qualquer tipo de preconceito ou discurso de ódio;\n4・Ghost em streamers (caso comprovado, será paassivel de punição);\n5・Qualquer tipo de combatlog (deslogar durante ações de PvP);\n6・Deixar veículos estacionados dentro de Safezones (recomendamos guarda-los dentro de garagens);\n7・Destruir ou arruinar veículos trancados pelo mapa (dentro ou fora de bases);\n8・Permitido um máximo de 2 helicopteros e 2 carros por clan;\nObservação・NÃO se responsabilizamos por eventuais bugs nos mods que ocasionem perdas ou prejuízo, pois não temos controle sobre os mesmos```")
 
     await ctx.send(file=discord.File("images/divisoria.gif"))
-    embedVar = discord.Embed(title="**Regras de construção**", description="É necessário atentar-se:\nAs regras de construção dos dois servers são diferentes, cuidado!",colour=discord.Colour.red())
+    embedVar = discord.Embed(title="**Regras de construção**", description="É necessário atentar-se:",colour=discord.Colour.red())
     embedVar.set_footer(text="As regras estão sujeitas a mudanças. Fique atento!")
     await ctx.send(embed=embedVar)
     await ctx.send("```python\n1・Toda e qualquer construção tem que ser feita a mais de 1000 metros das safe-zones;\n2・Toda e qualquer construção tem que ser feita a mais de 800 metros de Black Markets, caçadores e áreas militares;\n3・Toda base precisa ser raidavel;\n4・É permitido apenas uma FOB por clan;\n5・O tamanho máximo de qualquer base é de 125 cubos (exemplo: 5 x 5 x 5);\n6・É estritamente proibido bugar barracas;\n7・Máximo de 10 codelocks por base; Máximo de 3 codelocks por FOB; Sem limite de barracas com codelock (porém, podem ser destruidas em dia de raid);\n8・Todas as paredes devem ter um distanciamento mínimo de 1 jogador;\n9・Proibido colocar portas encostadas uma nas outras;\n10・Toda base precisa ter física básica (recomendamos o uso de pilares e fundação para isso);\n10.1・Toda base que não possua física, será deletada e os itens não serão reembolsados;\n11・Não é permitido colocar codelocks em cofres, armários e etc. (Caso visto, será deletado e os itens não serão reembolsados)```")
@@ -513,13 +1101,13 @@ async def regras_2(ctx):
     embedVar = discord.Embed(title="**Regras do servidor**", description="É estritamente proibido, dentro das dependências do State of War:",colour=discord.Colour.red())
     embedVar.set_footer(text="As regras estão sujeitas a mudanças. Fique atento!")
     await ctx.send(embed=embedVar)
-    await ctx.send("```python\n1・Uso de programas externos que possam oferecer vantagem dentro do jogo (hacks/sem mato);\n2・Uso de glitchs/bugs que ofereçam vantagem por cima de outros jogadores;\n3・Qualquer tipo de preconceito ou discurso de ódio;\n4・Ghost em streamers (caso comprovado, será paassivel de punição);\n5・Qualquer tipo de combatlog (deslogar durante ações de PvP);\n6・Deixar veículos estacionados dentro de Safezones (recomendamos guarda-los dentro de garagens);\n7・Destruir ou arruinar veículos trancados pelo mapa (dentro ou fora de bases);\nObservação・NÃO se responsabilizamos por eventuais bugs nos mods que ocasionem perdas ou prejuízo, pois não temos controle sobre os mesmos```")
+    await ctx.send("```python\n1・Uso de programas externos que possam oferecer vantagem dentro do jogo (hacks/sem mato);\n2・Uso de glitchs/bugs que ofereçam vantagem por cima de outros jogadores;\n3・Qualquer tipo de preconceito ou discurso de ódio;\n4・Ghost em streamers (caso comprovado, será paassivel de punição);\n5・Qualquer tipo de combatlog (deslogar durante ações de PvP);\n6・Deixar veículos estacionados dentro de Safezones (recomendamos guarda-los dentro de garagens);\n7・Destruir ou arruinar veículos trancados pelo mapa (dentro ou fora de bases);\n8・Permitido um máximo de 2 helicopteros e 2 carros por clan;\nObservação・NÃO se responsabilizamos por eventuais bugs nos mods que ocasionem perdas ou prejuízo, pois não temos controle sobre os mesmos```")
 
     await ctx.send(file=discord.File("images/divisoria.gif"))
-    embedVar = discord.Embed(title="**Regras de construção**", description="É necessário atentar-se:\nAs regras de construção dos dois servers são diferentes, cuidado!",colour=discord.Colour.red())
+    embedVar = discord.Embed(title="**Regras de construção**", description="É necessário atentar-se:",colour=discord.Colour.red())
     embedVar.set_footer(text="As regras estão sujeitas a mudanças. Fique atento!")
     await ctx.send(embed=embedVar)
-    await ctx.send("```python\n1・Toda e qualquer construção tem que ser feita a mais de 1000 metros das safe-zones;\n2・Toda e qualquer construção tem que ser feita a mais de 800 metros de Black Markets, caçadores e áreas militares;\n3・Toda base precisa ser raidavel;\n4・É permitido apenas uma FOB por clan;\n5・O tamanho máximo de qualquer base é de 125 cubos (exemplo: 5 x 5 x 5);\n6・É estritamente proibido bugar barracas;\n7・Máximo de 10 codelocks por base; Máximo de 3 codelocks por FOB; Sem limite de barracas com codelock (porém, podem ser destruidas em dia de raid);\n8・Todas as paredes devem ter um distanciamento mínimo de 1 jogador;\n9・Proibido colocar portas encostadas uma nas outras;\n10・Toda base precisa ter física básica (recomendamos o uso de pilares e fundação para isso);\n10.1・Toda base que não possua física, será deletada e os itens não serão reembolsados;\n11・Não é permitido colocar codelocks em cofres, armários e etc. (Caso visto, será deletado e os itens não serão reembolsados)```")
+    await ctx.send("```python\n1・Toda e qualquer construção tem que ser feita a mais de 1000 metros das safe-zones;\n2・Toda e qualquer construção tem que ser feita a mais de 800 metros de Black Markets, áreas militares;\n2.1・Para áreas militares pequenas e Checkpoints, a distância mínima está reduzida para 300 metros.\n3・Toda base precisa ser raidavel;\n4・É permitido apenas uma FOB por clan;\n5・O tamanho máximo de qualquer base é de 125 cubos (exemplo: 5 x 5 x 5);\n6・É estritamente proibido bugar barracas;\n7・Máximo de 10 codelocks por base; Máximo de 3 codelocks por FOB; Sem limite de barracas com codelock (porém, podem ser destruidas em dia de raid);\n8・Todas as paredes devem ter um distanciamento mínimo de 1 jogador;\n9・Proibido colocar portas encostadas uma nas outras;\n10・Toda base precisa ter física básica (recomendamos o uso de pilares e fundação para isso);\n10.1・Toda base que não possua física, será deletada e os itens não serão reembolsados;\n11・Não é permitido colocar codelocks em cofres, armários e etc. (Caso visto, será deletado e os itens não serão reembolsados)```")
 
     await ctx.send(file=discord.File("images/divisoria.gif"))
     embedVar = discord.Embed(title="**Regras de raid**", description="É necessário atentar-se:",colour=discord.Colour.red())
@@ -559,23 +1147,19 @@ async def enquete(ctx, *,conteudotitulo):
 @bot.command(name="code")  ##ARRUMAR O CÓDIGO
 async def code(ctx , code):
 
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
         return
 
+    print(f'====================={ctx.author.name} ACABOU DE INICIAR UMA VERIFICAÇÃO=====================')
+
     authorid = ctx.author.id
     authorid = "`"+str(authorid)+"`"
 
-    ##Configurações iniciais para conexão com a API do discord
-    file = "banco de dados.xlsx"
-    wb = openpyxl.load_workbook(filename=file)
-    ws = wb.worksheets[0]
-    wsr = wb.active
-
-    def get_info(codex):
+    async def get_info(codex):
         code = codex
         API_ENDPOINT = 'https://discord.com/api/v8'
         CLIENT_ID = '912310660669521921'
@@ -606,10 +1190,22 @@ async def code(ctx , code):
         code = exchange_code(code)["access_token"]
         user_json = get_user_json(code)
         user = str(user_json).split('}')
+
+        n = 0
+
         for section in user:
             if ("steam") in section:
                 data = section
+                n += 1
         
+        if n == 0:
+            embedVar = discord.Embed(title="⚠️ Steam não encontrada nas suas conexões do Discord.", description="Você precisa vincular a sua Steam a sua conta do Discord para executar a conexão.\nEsse código foi DESCARTADO. Após vincular a sua conta Steam ao seu Discord, gere um novo através do mesmo link e tente novamente.", colour=discord.Colour.random())
+            embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+            warning = await ctx.reply(embed=embedVar)
+            time.sleep(8)
+            await ctx.message.delete()
+            await warning.delete()
+            return
 
         data = data[20:]
         data = data.replace("{","")
@@ -625,10 +1221,98 @@ async def code(ctx , code):
         steam_id = steam_id[1:]
         nick = nick[1:]
         return steam_id, nick, verificed
-    data = get_info(code)
+    
+    data = await get_info(code)
+
+    print(f'OS DADOS FORAM ENCONTRADOS: SEGUEM ABAIXO')
+    print(data)
 
     id = data[0]
     id = "`"+id+"`"
+    
+    file = "kds_chernarus.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == None:
+                continue
+            if str(cell.value) == "":
+                continue
+            elif str(cell.value) == str(authorid):
+                embedVar = discord.Embed(title="⚠️Error 403", description="Já existe um registro com esse DiscordID no nosso banco de dados.", colour=discord.Colour.random())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                warning = await ctx.reply(embed=embedVar)
+                time.sleep(8)
+                await ctx.message.delete()
+                await warning.delete()
+                print("====================FIM - BARRADO EM CHERNARUS - ID DISCORD ====================")
+                return
+            elif str(cell.value) == str(id):
+                embedVar = discord.Embed(title="⚠️Error 403", description="Já existe um registro com esse SteamID no nosso banco de dados.", colour=discord.Colour.random())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                warning = await ctx.reply(embed=embedVar)
+                time.sleep(8)
+                await ctx.message.delete()
+                await warning.delete()
+                print("====================FIM - BARRADO EM CHERNAURS - ID STEAM ====================")
+                return
+
+
+    ws[f'{get_column_letter(ws.min_column + 0)}{(ws.max_row + 1)}'] = authorid #ID do Discord
+    ws[f'{get_column_letter(ws.min_column + 1)}{(ws.max_row)}'] = id #ID da Steam
+    ws[f'{get_column_letter(ws.min_column + 2)}{(ws.max_row)}'] = "0" #Número de vezes que morreu
+    ws[f'{get_column_letter(ws.min_column + 3)}{(ws.max_row)}'] = "0" #Número de vezes que matou
+    ws[f'{get_column_letter(ws.min_column + 4)}{(ws.max_row)}'] = "0" #Maior distância de kill
+    wb.save(file)
+    
+    print('PASSOU POR CHERNARUS')
+
+    file = "kds_namalsk.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
+
+    for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+        for cell in row:
+            if cell.value == None:
+                continue
+            if str(cell.value) == "":
+                continue
+            elif str(cell.value) == str(authorid):
+                embedVar = discord.Embed(title="⚠️Error 403", description="Já existe um registro com esse DiscordID no nosso banco de dados.", colour=discord.Colour.random())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                warning = await ctx.reply(embed=embedVar)
+                time.sleep(8)
+                await ctx.message.delete()
+                await warning.delete()
+                print("====================FIM - BARRADO EM NAMALSK - ID DISCORD====================")
+                return
+            elif str(cell.value) == str(id):
+                embedVar = discord.Embed(title="⚠️Error 403", description="Já existe um registro com esse SteamID no nosso banco de dados.", colour=discord.Colour.random())
+                embedVar.set_footer(text="Caso tenha alguma dúvida, entre em contato com o DEV.")
+                warning = await ctx.reply(embed=embedVar)
+                time.sleep(8)
+                await ctx.message.delete()
+                await warning.delete()
+                print("====================FIM - BARRADO EM NAMALSK - ID STEAM====================")
+                return
+
+    ws[f'{get_column_letter(ws.min_column + 0)}{(ws.max_row + 1)}'] = authorid #ID do Discord
+    ws[f'{get_column_letter(ws.min_column + 1)}{(ws.max_row)}'] = id #ID da Steam
+    ws[f'{get_column_letter(ws.min_column + 2)}{(ws.max_row)}'] = "0" #Número de vezes que morreu
+    ws[f'{get_column_letter(ws.min_column + 3)}{(ws.max_row)}'] = "0" #Número de vezes que matou
+    ws[f'{get_column_letter(ws.min_column + 4)}{(ws.max_row)}'] = "0" #Maior distância de kill
+    wb.save(file)
+
+    print('PASSOU POR NAMALSK')
+
+    file = "banco de dados.xlsx"
+    wb = openpyxl.load_workbook(filename=file)
+    ws = wb.worksheets[0]
+    wsr = wb.active
 
     for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
         for cell in row:
@@ -638,7 +1322,9 @@ async def code(ctx , code):
                 ws[f'{get_column_letter(cell.column + 4)}{cell.row}'] = data[2]
                 wb.save(file)
 
-    embedVar = discord.Embed(title="✅ Verificado com sucesso", description = "A sua conta Steam está vinculada com o nosso sistema.")
+    print('PASSOU PELO BANCO DE DADOS OFICIAL')
+
+    embedVar = discord.Embed(title="✅ Verificado com sucesso", description = "A sua conta Steam está vinculada com o nosso sistema e o nosso sitema de KDr e kills está funcionando corretamente com o seu perfil!.")
     embedVar.set_footer(text="➝ Se precisar de ajuda com o seu registro, entre em contato com o DEV.")
     warning = await ctx.reply(embed=embedVar)
 
@@ -646,11 +1332,13 @@ async def code(ctx , code):
     await ctx.message.delete()
     await warning.delete()
 
+    print('==================FIM=======================')
+
 @bot.command(name="ficha")
 async def ficha(ctx, member:discord.Member):
 
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até as 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -729,8 +1417,8 @@ async def ficha(ctx, member:discord.Member):
 @bot.command(name="perfil")
 async def perfil(ctx):
 
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -799,8 +1487,8 @@ async def perfil(ctx):
 @bot.command(name="registrarall")
 async def registrarall(ctx):
 
-    if update_state == "ON":
-        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -852,8 +1540,8 @@ async def registrarall(ctx):
 @bot.command(name="vipadd")
 async def vipadd(ctx, member:discord.Member):
 
-    if update_state == "ON":
-        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -985,8 +1673,8 @@ async def vipadd(ctx, member:discord.Member):
 @bot.command(name="vipmod")
 async def vipmod(ctx, member:discord.Member):
 
-    if update_state == "ON":
-        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.send("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até ás 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -1224,16 +1912,16 @@ async def doacoesanuncios(ctx):
     embedVar = discord.Embed(title="DOAÇÕES PARA O STATE OF WAR", description="Aprenda aqui como doar para o servidor!", colour = discord.Colour.random())
     embedVar.add_field(name="Porque doar?", value="Doar é uma maneira de ajudar o nosso servidor se manter ativo. Todo dinheiro recebido será investido em melhoras de equipamentos, host e qualidade do servidor.", inline=False)
     embedVar.add_field(name="Qual quantia eu posso doar?", value="Nós aceitamos doações de valores dentro de uma tabela de preços, para melhor administração do dinheiro.", inline=False)
-    embedVar.add_field(name="Como posso doar?", value="Para ter mais informações sobre como ajudar nosso servidor, clique no botão abaixo!")
+    embedVar.add_field(name="Como posso doar?", value="Para ter mais informações sobre como ajudar nosso servidor, clique no botão abaixo 'Saiba mais!' ou entre em nosso site!")
     embedVar.set_footer(text="➝ Caso o Bot estiver offline, esse comando não vai funcionar!")
 
-    await ctx.send(embed=embedVar, components=[Button(label="Saiba mais!", style=ButtonStyle.green, custom_id="more_info_vip")])
+    await ctx.send(embed=embedVar, components=[Button(label="Saiba mais!", style=ButtonStyle.green, custom_id="more_info_vip"), Button(label="Site", style=ButtonStyle.URL, url="https://stateofwar.xyz/doacoes")])
 
 @bot.command(name="punir")
 async def punir(ctx, member:discord.Member):
     
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -1282,7 +1970,7 @@ async def punir(ctx, member:discord.Member):
                     antigo = int(antigo)
                     novo = antigo + 1
                     novo = str(novo)
-                    ws[f'{get_column_letter(cell.column + 5)}{(cell.row)}'] = novo #POSSUI FILA PRIORITARIA
+                    ws[f'{get_column_letter(cell.column + 5)}{(cell.row)}'] = novo
                     wb.save(file)
                     n += 1
                 else:
@@ -1344,8 +2032,8 @@ async def clan_criar(ctx, tag, r=0, g=0, b=0):
     else:
         r,g,b = int(r), int(g), int(b)
 
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até ás 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -1422,8 +2110,8 @@ async def clan_criar(ctx, tag, r=0, g=0, b=0):
 @bot.command(name="clan_sair")
 async def clan_sair(ctx):
       
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até as 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -1489,8 +2177,8 @@ async def clan_sair(ctx):
 @bot.command(name="clan_expulsar")
 async def clan_expulsar(ctx, member:discord.Member):
 
-    if update_state == "ON":
-        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo não costuma demorar muito_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
         time.sleep(10)
         await warning.delete()
         await ctx.message.delete()
@@ -1597,8 +2285,10 @@ async def ajuda(ctx):
         embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
         mensagem = await ctx.reply(embed=embedVar, components=[Select(placeholder="Ajudas", custom_id="help", options=[
             SelectOption(label="Administração", value="adm", emoji="⚙️"),
+            SelectOption(label="Kill/Death Ratio", value="kdr", emoji="⚜️"),
             SelectOption(label="Clan", value="clan", emoji="🛡️"),
-            SelectOption(label="Música", value="musica", emoji="🎵")
+            SelectOption(label="Música", value="musica", emoji="🎵"),
+            SelectOption(label="Suspeito", value="suspeito", emoji="🕵️‍♂️")
         ])])
 
         interaction = await bot.wait_for('select_option', check=lambda inter: inter.custom_id == 'help' and inter.user == ctx.author)
@@ -1618,8 +2308,8 @@ async def ajuda(ctx):
             embedVar.add_field(name="`!removerole [CARGO]`", value="Remove um [CARGO] em especifico de todos os membros do servidor.", inline=True)
             embedVar.add_field(name="`!pegueseucargo`", value="Anuncia a mensagem para pegar cargos de Chernarus e/ou Namalsk no canal em questão.", inline=True)
             embedVar.add_field(name="`!valido`", value="Valida um raid (usado apenas em chats destinados a solicitação de prova de raid. Deleta o chat após 24 horas.)", inline=True)
-            embedVar.add_field(name="`!invalido`", value="Invalida um raid (usado apenas em chats destinados a solicitação de prova de raid. Deleta o chat após 24 horas.)", inline=False)
-            embedVar.add_field(name="ㅤ", value="ㅤ")
+            embedVar.add_field(name="`!invalido`", value="Invalida um raid (usado apenas em chats destinados a solicitação de prova de raid. Deleta o chat após 24 horas.)", inline=True)
+            embedVar.add_field(name="`!purge`", value="Apaga TODAS as mensagens do canal de texto ao qual o comando foi enviado. Não existe forma de desfazer esse comando.", inline=True)
             embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
             await mensagem.edit(embed=embedVar)
         elif interaction.values[0] == "clan":
@@ -1631,6 +2321,13 @@ async def ajuda(ctx):
             embedVar.add_field(name="`!clan_sair`", value="Sai do clan em que você está participando. Líderes não podem sair do próprio clan.", inline=False)
             embedVar.add_field(name="`!clan_expulsar [@usuario]`", value="Expulsa o usuário em questão. Comando disponível apenas para os líderes de clan.", inline=False)
             embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
+            await mensagem.edit(embed=embedVar)
+        elif interaction.values[0] == "kdr":
+            embedVar = discord.Embed(title="⚜️ Kill/Death ratio", description="Uma lista de comandos para analisar o seu KDr.", colour = discord.Colour.random())
+            embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embedVar.add_field(name="`!kdr`", value="Mostra, publicamente, o seu KDr do Chernarus/Namalsk.", inline=False)
+            embedVar.add_field(name="`!kdr_pv`", value="Envia, no seu privado, o seu KDr do Chernarus/Namalsk.", inline=False)
+            embedVar.add_field(name="`!top_kills`", value="Mostra os 10 melhores tiros de jogadores.", inline=False)
             await mensagem.edit(embed=embedVar)
         elif interaction.values[0] == "musica":
             embedVar = discord.Embed(title="🎵 Música", description="Uma lista de comandos para gerenciar músicas.", colour = discord.Colour.random())
@@ -1644,6 +2341,15 @@ async def ajuda(ctx):
             embedVar.add_field(name="`!remover [NÚMERO]`", value="Remove a música da fila.", inline=False)
             embedVar.add_field(name="`!play [NOME OU LINK]`", value="Adiciona uma música na fila de reprodução.", inline=False)
             await mensagem.edit(embed=embedVar)
+        elif interaction.values[0] == "suspeito":
+            embedVar = discord.Embed(title="🕵️‍♂️ Suspeito", description="Uma lista de comandos para gerenciar os suspeitos.", colour = discord.Colour.random())
+            embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embedVar.add_field(name="`!suspeito_adicionar [NICK]/[STEAM_ID]/[MOTIVO]`", value="Adiciona um SteamID, Nick e um motivo no banco de dados.", inline=False)
+            embedVar.add_field(name="`!suspeito_deletar [STEAM_ID]`", value="Deleta um SteamID do banco de dados.", inline=False)
+            embedVar.add_field(name="`!suspeito_editar [STEAM_ID]`", value="Edita alguma inforamação de algum SteamID em questão", inline=False)
+            embedVar.add_field(name="`!suspeito_lista`", value="Mostra toda a lista de suspeitos que ja foram adicionados no banco de dados.", inline=False)
+            embedVar.add_field(name="`!suspeito_ficha`", value="Mostra a ficha de algum Steam ID em questão.", inline=False)
+            await mensagem.edit(embed=embedVar)
     else:
         embedVar = discord.Embed(title="🤖 Ajuda do Bot State of War", description="Uma lista de ajuda feita para administradores do State of War\nSelecione o tipo de ajuda que você deseja receber nas opções abaixo!", colour=discord.Colour.random())
         embedVar.add_field(name="`!ajuda`", value="Mostra uma tabela de como usar os comandos disponiveis do bot.")
@@ -1652,6 +2358,7 @@ async def ajuda(ctx):
         embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
         mensagem = await ctx.reply(embed=embedVar, components=[Select(placeholder="Ajudas", custom_id="help", options=[
             SelectOption(label="Clan", value="clan", emoji="🛡️"),
+            SelectOption(label="Kill/Death Ratio", value="kdr", emoji="⚜️"),
             SelectOption(label="Música", value="musica", emoji="🎵")
         ])])
         interaction = await bot.wait_for('select_option', check=lambda inter: inter.custom_id == 'help' and inter.user == ctx.author)
@@ -1677,10 +2384,24 @@ async def ajuda(ctx):
             embedVar.add_field(name="`!remover [NÚMERO]`", value="Remove a música da fila.", inline=False)
             embedVar.add_field(name="`!play [NOME OU LINK]`", value="Adiciona uma música na fila de reprodução.", inline=False)
             await mensagem.edit(embed=embedVar)
+        elif interaction.values[0] == "kdr":
+            embedVar = discord.Embed(title="⚜️ Kill/Death ratio", description="Uma lista de comandos para analisar o seu KDr.", colour = discord.Colour.random())
+            embedVar.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embedVar.add_field(name="`!kdr`", value="Mostra, publicamente, o seu KDr do Chernarus/Namalsk.", inline=False)
+            embedVar.add_field(name="`!kdr_pv`", value="Envia, no seu privado, o seu KDr do Chernarus/Namalsk.", inline=False)
+            embedVar.add_field(name="`!top_kills`", value="Mostra os 10 melhores tiros de jogadores.", inline=False)
+            await mensagem.edit(embed=embedVar)
     return
 
 @bot.command(name="registrar")
 async def registrar(ctx, member:discord.Member):
+
+    if str(datetime.datetime.now().hour) == '8':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+        time.sleep(10)
+        await warning.delete()
+        await ctx.message.delete()
+        return
 
     check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761) #ID DE ADMINISTRADOR SUPREMO
 
@@ -1725,6 +2446,13 @@ async def registrar(ctx, member:discord.Member):
 @bot.command(name="daypass")
 async def daypass(ctx):
 
+    if str(datetime.datetime.now().hour) == '5':
+        warning = await ctx.reply("Estamos atualizando o nosso banco de dados. Por favor, tente novamente mais tarde\n_Esse processo dura das 05:00 até às 06:00_\nCaso você ache que isso seja um erro, entre em contato com o DEV.")
+        time.sleep(10)
+        await warning.delete()
+        await ctx.message.delete()
+        return
+
     check_1 = discord.utils.get(ctx.guild.roles, id=947242380040478761) #ID DE ADMINISTRADOR SUPREMO
 
     if check_1 in ctx.author.roles:
@@ -1735,9 +2463,6 @@ async def daypass(ctx):
         await warning.delete()
         await ctx.message.delete()
         return
-
-    global update_state
-    update_state = "ON"
 
     file = "banco de dados.xlsx"
     wb = openpyxl.load_workbook(filename=file)
@@ -1796,7 +2521,6 @@ async def daypass(ctx):
     await update(17)
     await update(19)
 
-    update_state = "OFF"
     return
 
 @bot.command(name="giverole")
@@ -2143,9 +2867,9 @@ async def on_message(message):
     if message.author.id == 912310660669521921:
         return
 
-    sugestao_banidas = ['inclinado','pescoço torto','torto','inclinar','inclinação','inclinacao','perninha quebrada','enclinadinha','enclinada','enclinacao','enclinação','pescoço','pescosso','cabeçinha','cabessinha','cabesinha','deitar para o lado','deitar pro lado','deitar de lado']
+    sugestao_banidas = ['inclinado','pescoço torto','torto','inclinar','inclinação','inclinacao','perninha quebrada','enclinadinha','enclinada','enclinacao','enclinação','pescoço','pescosso','cabecinha','cabeçinha','cabessinha','cabesinha','deitar para o lado','deitar pro lado','deitar de lado']
     sugestao_banidas2 = ['stun', 'shok', 'choque', 'impulsos', 'impulssos', 'inpulso', 'inpulsso', 'knock', 'knok', 'knock', 'chok']
-    if message.channel.id == 957398409319440494:
+    if message.channel.id == 966561948806307912:
 
         for word in sugestao_banidas:
             if word in message.content:
@@ -2163,8 +2887,12 @@ async def on_message(message):
                 await warning.delete
                 return
 
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
+        guild = await bot.fetch_guild(947237264596041728)
+        sim = await guild.fetch_emoji(963299957555752970)
+        nao = await guild.fetch_emoji(963300068578963516)
+
+        await message.add_reaction(sim)
+        await message.add_reaction(nao)
 
     if message.channel.id == 961335605487345725:
 
@@ -2176,8 +2904,185 @@ async def on_message(message):
                 await warning.delete()
                 return
 
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
+        guild = await bot.fetch_guild(947237264596041728)
+        sim = await guild.fetch_emoji(963299957555752970)
+        nao = await guild.fetch_emoji(963300068578963516)
+
+        await message.add_reaction(sim)
+        await message.add_reaction(nao)
+
+    if message.channel.id == 964755459766620220:
+        embeds = message.embeds
+        for embed in embeds:
+            if 'joined' in str(embed.to_dict()):
+                content = str(embed.to_dict())
+                content = content.split("}")
+                content = content[1]
+                content = content[24:]
+                id = content[:17]
+
+                id = "`" + str(id) + "`"
+
+                file = "suspeitos.xlsx"
+                wb = openpyxl.load_workbook(filename=file)
+                ws = wb.worksheets[0]
+                wsr = wb.active
+
+                for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+                    for cell in row:
+                        if cell.value == id:
+                            channel = await bot.fetch_channel(960022037794025522)
+
+                            embedVar = discord.Embed(title="⚠️ ALERTA!!! ⚠️", description=f"O JOGADOR COM O STEAMID {id} ENTROU NO JOGO E ESTÁ NA LISTA DE SUSPEITOS!!!", colour = discord.Colour.red())
+                            embedVar.set_footer(text=f"Para saber mais informações sobre o suspeito, use `!suspeito_ficha {id}`\nCaso tenha alguma dúvida, entre em contato com o DEV.")
+                            await channel.send(embed = embedVar)
+
+    if message.channel.id == 961302672609267783: #namalsk kds
+        embeds = message.embeds
+        for embed in embeds:
+            msg = str(embed.to_dict())
+
+            try:
+                content = msg
+                content = content.split("}")
+                informacao = content[1]
+                content = informacao.split('\\n')
+                content = content[1]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                steam_id_death = str(content)
+                steam_id_death = "`" + steam_id_death + "`"
+            except Exception:
+                pass
+            
+            try:
+                content = msg
+                content = content.split("}")
+                informacao_2 = content[2]
+                content = informacao_2.split('\\n')
+                content = content[1]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                steam_id_killer = str(content)
+                steam_id_killer = "`" + steam_id_killer + "`"
+            except Exception:
+                pass
+
+            try:
+                content = msg
+                content = content.split("}")
+                informacao_3 = content[3]
+                content = informacao_3.split("\\nPosition:")
+                content = content[2]
+                content = content.split("from")
+                content = content[1]
+                content = content.split("meters")
+                content = content[0]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                distancia = float(content)
+                distancia = round(distancia, 3)
+            except Exception:
+                pass
+            
+            file = "kds_namalsk.xlsx"
+            wb = openpyxl.load_workbook(filename=file)
+            ws = wb.worksheets[0]
+            wsr = wb.active
+
+            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+                for cell in row:
+                    if cell.value == steam_id_death:
+                        mortes = ws.cell(row=cell.row, column = 3).value
+                        new_mortes = int(mortes) + 1
+                        ws[f'{get_column_letter(cell.column + 1)}{(cell.row)}'] = str(new_mortes)
+                        wb.save(file)
+                    try:
+                        if cell.value == steam_id_killer:
+                            kills = ws.cell(row=cell.row, column = 4).value
+                            distancia_anterior = ws.cell(row=cell.row, column=5).value
+                            new_kills = int(kills) + 1
+                            ws[f'{get_column_letter(cell.column + 2)}{(cell.row)}'] = str(new_kills)
+                            wb.save(file)
+                            if float(distancia_anterior) < float(distancia):
+                                ws[f'{get_column_letter(cell.column + 3)}{(cell.row)}'] = str(distancia)
+                                wb.save(file)
+                    except Exception:
+                        pass
+
+    if message.channel.id == 961302180340596826: #chernarus kds
+        embeds = message.embeds
+        for embed in embeds:
+
+            msg = str(embed.to_dict())
+
+            try:
+                content = msg
+                content = content.split("}")
+                informacao = content[1]
+                content = informacao.split('\\n')
+                content = content[1]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                steam_id_death = str(content)
+                steam_id_death = "`" + steam_id_death + "`"
+            except Exception:
+                pass
+
+            try:
+                content = msg
+                content = content.split("}")
+                informacao_2 = content[2]
+                content = informacao_2.split('\\n')
+                content = content[1]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                steam_id_killer = str(content)
+                steam_id_killer = "`" + steam_id_killer + "`"
+            except Exception:
+                pass
+
+            try:
+                content = msg
+                content = content.split("}")
+                informacao_3 = content[3]
+                content = informacao_3.split("\\nPosition:")
+                content = content[2]
+                content = content.split("from")
+                content = content[1]
+                content = content.split("meters")
+                content = content[0]
+                content = content.replace("[","")
+                content = content.replace("]","")
+                distancia = float(content)
+                distancia = round(distancia, 3)
+            except Exception:
+                pass
+            
+            file = "kds_chernarus.xlsx"
+            wb = openpyxl.load_workbook(filename=file)
+            ws = wb.worksheets[0]
+            wsr = wb.active
+
+            for row in wsr.iter_rows(wsr.min_row, wsr.max_row):
+                for cell in row:
+                    if cell.value == steam_id_death:
+                        mortes = ws.cell(row=cell.row, column = 3).value
+                        new_mortes = int(mortes) + 1
+                        ws[f'{get_column_letter(cell.column + 1)}{(cell.row)}'] = str(new_mortes)
+                        wb.save(file)
+                    try:
+                        if cell.value == steam_id_killer:
+                            kills = ws.cell(row=cell.row, column = 4).value
+                            distancia_anterior = ws.cell(row=cell.row, column=5).value
+                            new_kills = int(kills) + 1
+                            ws[f'{get_column_letter(cell.column + 2)}{(cell.row)}'] = str(new_kills)
+                            wb.save(file)
+                            if float(distancia_anterior) < float(distancia):
+                                ws[f'{get_column_letter(cell.column + 3)}{(cell.row)}'] = str(distancia)
+                                wb.save(file)
+                    except Exception:
+                        pass
 
 @bot.event
 async def on_member_remove(member):
@@ -2203,7 +3108,7 @@ async def on_member_remove(member):
 @bot.event
 async def on_member_join(member):
 
-    if update_state == "ON":
+    if str(datetime.datetime.now().hour) == '8':
         time.sleep(1000)
 
     file = "banco de dados.xlsx"
@@ -2230,7 +3135,7 @@ async def on_member_join(member):
     embedVar.set_author(name=author, icon_url=pic)
     embedVar.set_footer(text="©️ Todos os direitos reservados.")
     embedVar.set_image(url="https://i.imgur.com/pNBsQTi.jpg")
-    embedVar.add_field(name="Evite punições :rotating_light:", value="Leia as regras em <#{}> e fique por dentro das diretrizes da nossa comunidade.".format(ID_REGRAS), inline=False)
+    embedVar.add_field(name="Evite punições <a:siren:963299760662544416> ", value="Leia as regras em <#{}> e fique por dentro das diretrizes da nossa comunidade.".format(ID_REGRAS), inline=False)
     embedVar.set_thumbnail(url=pic)
     await channel.send(embed=embedVar)
 
@@ -2269,7 +3174,6 @@ async def on_ready():
     member_count = guild.member_count
     activity = discord.Activity(name="Sobreviventes ➝ ({})".format(member_count), type=1)
     await bot.change_presence(status=discord.Status.online, activity=activity)
-    update_days.start()
     return
 
 @bot.event
@@ -2301,84 +3205,6 @@ async def on_raw_reaction_remove(payload):
         member = await(guild.fetch_member(payload.user_id))
         await member.remove_roles(role)
 
-n = 0
-@tasks.loop(hours=24)
-async def update_days():
-
-    global update_state
-
-    file = "banco de dados.xlsx"
-    wb = openpyxl.load_workbook(filename=file)
-    ws = wb.worksheets[0]
-    wsr = wb.active
-
-    global n
-
-    if n != 1: #IF para não permitir que desconte 1 dia dos VIPs só por ligar o bot
-        n += 1
-        return 
-    
-    update_state = "ON"
-
-    channel = bot.get_channel(960022037794025522)
-
-    async def update(coluna):
-        if coluna == 11:
-            beneficio = "Seguro de Veiculos"
-        if coluna == 14:
-            beneficio = "Seguro de Helicopteros"
-        if coluna == 17:
-            beneficio = "Base VIP"
-        if coluna == 19:
-            beneficio = "Fila prioritária"
-
-        status = "normal"
-
-        for row in wsr.iter_cols(min_col=coluna, max_col=coluna, min_row=1):
-                for cell in row:
-                    if cell.value != '0' and cell.value != None:
-                        idd = ws.cell(row=cell.row, column=1).value
-                        idd = idd.replace("`","")
-                        antigo = int(cell.value)
-                        novo = antigo - 1
-                        ws[f'{get_column_letter(cell.column)}{(cell.row)}'] = str(novo) #TEMPO RESTANTE DA VILA PRIORITARIA
-                        if str(novo) == '0':
-                            ws[f'{get_column_letter(cell.column -1)}{(cell.row)}'] = '❌'
-                            status = "acabou"
-                        wb.save(file)
-                        if str(novo) == '3':
-                            status = "quase"
-
-        if status == "quase":
-            user = await bot.fetch_user(idd)
-            embedVar = discord.Embed(title="⚠️ Atenção!", description=f"O benefício de `{beneficio}` de {user.name}, portador do Discord ID {idd} está a 3 dias do seu fim", colour=discord.Colour.random())
-            embedVar.set_footer(text="Se precisar de ajuda, entre em contato com o DEV.")
-            await channel.send(embed = embedVar)
-
-            embedVar = discord.Embed(title="⚠️ Atenção!", description=f"Faltam 3 dias para seu benefício de `{beneficio}` acabar! Você pode renovar criando um ticket na aba de Financeiro!", colour=discord.Colour.random())
-            embedVar.set_footer(text="Se precisar de ajuda, entre em contato com o DEV.")
-            await user.send(embed = embedVar)
-        
-        if status == "acabou":
-            user = await bot.fetch_user(idd)
-            embedVar = discord.Embed(title="⚠️ Atenção!", description=f"O benefício de `{beneficio}` de {user.name}, portador do Discord ID {idd} **acabou**!", colour=discord.Colour.random())
-            embedVar.set_footer(text="Se precisar de ajuda, entre em contato com o DEV.")
-            await channel.send(embed = embedVar)
-
-            embedVar = discord.Embed(title="⚠️ Atenção!", description=f"O seu beneficio de `{beneficio}` acabou! Você pode renovar criando um ticket na aba de Financeiro!", colour=discord.Colour.random())
-            embedVar.set_footer(text="Se precisar de ajuda, entre em contato com o DEV.")
-            await user.send(embed = embedVar)
-        
-
-
-    await update(11)
-    await update(14)
-    await update(17)
-    await update(19)
-
-    update_state = "OFF"
-    return
-
 @clan_criar.error
 async def clan_criarerror(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
@@ -2386,17 +3212,6 @@ async def clan_criarerror(ctx, error):
         embedVar.add_field(name="Atenção!", value="・Para criar um clan é necessário seguir estritamente o comando `!clan_criar [TAG]`.\n・A cor definida para o clan é aleatória.")
         embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
         await ctx.reply(embed=embedVar)
-    return
-
-@code.error
-async def code(ctx, error):
-    if isinstance(error, UnboundLocalError):
-        embedVar = discord.Embed(title="⚠️ Erro para vincular!", colour = discord.Colour.random())
-        embedVar.add_field(name="Atenção:", value="Tenha certeza que a sua conta Steam está vinculada com o seu Discord, através da aba de Configurações > Minha conta > Conexões.")
-        embedVar.set_footer(text="➝ Se precisar de ajuda, entre em contato com o DEV.")
-        await ctx.reply(embed = embedVar)
-        time.sleep(8)
-        await ctx.message.delete()
     return
 
 @doacoesanuncios.error
@@ -2419,7 +3234,6 @@ async def perfil(ctx, error):
         await ctx.reply(embed = embedVar)
     return
 
-
 bot.add_cog(Music(bot))
 bot.load_extension('cogs.Clan')
-bot.run()
+bot.run('OTEyMzEwNjYwNjY5NTIxOTIx.YZuFgw.pmM_bRVw0VXQ6OLPrqUu336wpcM')
