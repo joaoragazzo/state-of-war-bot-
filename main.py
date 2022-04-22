@@ -3236,4 +3236,4 @@ async def perfil(ctx, error):
 
 bot.add_cog(Music(bot))
 bot.load_extension('cogs.Clan')
-bot.run('OTEyMzEwNjYwNjY5NTIxOTIx.YZuFgw.pmM_bRVw0VXQ6OLPrqUu336wpcM')
+bot.run()
